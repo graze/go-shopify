@@ -356,9 +356,12 @@ func TestDo(t *testing.T) {
 		httpmock.RegisterResponder("GET", shopUrl, c.responder)
 
 		body := new(MyStruct)
-		req, _ := client.NewRequest("GET", c.url, nil, nil)
-		err := client.Do(req, body)
+		req, err := client.NewRequest("GET", c.url, nil, nil)
+		if err != nil {
+			t.Error("error creating request: ", err)
+		}
 
+		err = client.Do(req, body)
 		if err != nil {
 			if e, ok := err.(*url.Error); ok {
 				err = e.Err
