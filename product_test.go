@@ -1,6 +1,7 @@
 package goshopify
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -60,6 +61,25 @@ func TestProductListFilterByIds(t *testing.T) {
 	}
 }
 
+func TestProductListError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	httpmock.RegisterResponder("GET", fmt.Sprintf("https://fooshop.myshopify.com/%s/products.json", client.pathPrefix),
+		httpmock.NewStringResponder(500, ""))
+
+	expectedErrMessage := "Unknown Error"
+
+	products, err := client.Product.List(nil)
+	if products != nil {
+		t.Errorf("Product.List returned products, expected nil", err)
+	}
+
+	if err == nil || err.Error() != expectedErrMessage {
+		t.Errorf("Product.List err returned %+v, expected %+v", err, expectedErrMessage)
+	}
+}
+
 func TestProductListWithPagination(t *testing.T) {
 	setup()
 	defer teardown()
@@ -98,10 +118,24 @@ func TestProductListWithPagination(t *testing.T) {
 		},
 		{
 			"{}",
+			`<http://valid.url?%invalid_query>; rel="next"`,
+			[]Product(nil),
+			nil,
+			errors.New(`invalid URL escape "%in"`),
+		},
+		{
+			"{}",
 			`<http://valid.url>; rel="next"`,
 			[]Product(nil),
 			nil,
 			ResponseDecodingError{Message: "page_info is missing"},
+		},
+		{
+			"{}",
+			`<http://valid.url?page_info=foo&limit=invalid>; rel="next"`,
+			[]Product(nil),
+			nil,
+			errors.New(`strconv.Atoi: parsing "invalid": invalid syntax`),
 		},
 		// Valid link header responses
 		{
@@ -149,7 +183,7 @@ func TestProductListWithPagination(t *testing.T) {
 			)
 		}
 
-		if !reflect.DeepEqual(err, c.expectedErr) {
+		if (c.expectedErr != nil || err != nil) && err.Error() != c.expectedErr.Error() {
 			t.Errorf(
 				"test %d Product.ListWithPagination err returned %+v, expected %+v",
 				i,
