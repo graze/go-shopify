@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -86,6 +87,12 @@ func TestProductListWithPagination(t *testing.T) {
 
 	listURL := fmt.Sprintf("https://fooshop.myshopify.com/%s/products.json", client.pathPrefix)
 
+	// The strconv.Atoi error changed in go 1.8, 1.7 is still being tested/supported.
+	limitConversionErrorMessage := `strconv.Atoi: parsing "invalid": invalid syntax`
+	if runtime.Version() < "go1.8" {
+		limitConversionErrorMessage = `strconv.ParseInt: parsing "invalid": invalid syntax`
+	}
+
 	cases := []struct {
 		body               string
 		linkHeader         string
@@ -135,7 +142,7 @@ func TestProductListWithPagination(t *testing.T) {
 			`<http://valid.url?page_info=foo&limit=invalid>; rel="next"`,
 			[]Product(nil),
 			nil,
-			errors.New(`strconv.Atoi: parsing "invalid": invalid syntax`),
+			errors.New(limitConversionErrorMessage),
 		},
 		// Valid link header responses
 		{
