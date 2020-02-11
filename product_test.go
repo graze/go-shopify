@@ -72,7 +72,7 @@ func TestProductListError(t *testing.T) {
 
 	products, err := client.Product.List(nil)
 	if products != nil {
-		t.Errorf("Product.List returned products, expected nil", err)
+		t.Errorf("Product.List returned products, expected nil: %v", err)
 	}
 
 	if err == nil || err.Error() != expectedErrMessage {
