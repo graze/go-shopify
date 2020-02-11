@@ -176,7 +176,13 @@ func extractPagination(linkHeader string) (*Pagination, error) {
 			return nil, err
 		}
 
-		paginationListOptions.Limit, _ = strconv.Atoi(params.Get("limit"))
+		limit := params.Get("limit")
+		if limit != "" {
+			paginationListOptions.Limit, err = strconv.Atoi(params.Get("limit"))
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		// 'rel' is either next or previous
 		if match[2] == "next" {
